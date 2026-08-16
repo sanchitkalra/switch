@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Switch</title>
+<meta name="theme-color" content="#16202B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Switch">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --ink:#16202B; --ink2:#243447; --paper:#E6E5DF; --card:#FBFAF7;
+  --amber:#E9A63C; --teal:#2E7D6E; --brick:#9E4A3C; --mute:#6E7883; --line:#D6D4CC;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;background:var(--paper);}
+body{
+  font-family:var(--sans); color:var(--ink);
+  padding:calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right))
+          calc(24px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+  max-width:820px; margin:0 auto; -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:contain;
+}
+
+/* board -------------------------------------------------------- */
+.board{background:var(--ink);border-radius:3px;padding:13px 13px 9px;margin-bottom:13px;}
+.board-row{display:flex;gap:5px;flex-wrap:wrap;}
+.cell{flex:1 1 62px;background:var(--ink2);border-radius:2px;padding:7px 8px;min-width:0;}
+.cell.wide{flex:2 1 128px;}
+.ck{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:#7A8899;margin-bottom:3px;}
+.cv{display:block;font-family:var(--mono);font-weight:700;font-size:16px;color:var(--amber);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cv.hot{color:#F2705A;}
+.strip{display:flex;gap:3px;margin-top:9px;}
+.tick{flex:1;height:5px;border-radius:1px;background:#31435A;}
+.tick.full{background:var(--amber);}
+.tick.short{background:#8A6B2E;}
+.tick.rest{background:#4A5C74;}
+
+/* blocks ------------------------------------------------------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:15px;margin-bottom:11px;}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute);margin-bottom:8px;}
+h2{font-size:25px;font-weight:700;letter-spacing:-.02em;margin:0 0 6px;}
+h3{font-size:17px;font-weight:600;margin:0 0 6px;}
+.detail{font-size:14px;line-height:1.55;color:#3D4854;margin:0;}
+.sub{font-size:12px;color:var(--mute);margin:6px 0 0;}
+.alert{background:#2B1F1B;color:#F0D9C8;border-left:3px solid #F2705A;padding:12px 14px;border-radius:2px;
+  font-size:13.5px;line-height:1.55;margin-bottom:12px;}
+.alert strong{color:#fff;}
+
+/* tabs --------------------------------------------------------- */
+nav{display:flex;gap:2px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+nav::-webkit-scrollbar{display:none;}
+.tab{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  background:transparent;border:1px solid var(--line);border-radius:2px;padding:8px 12px;color:var(--mute);
+  cursor:pointer;white-space:nowrap;}
+.tab.on{background:var(--ink);border-color:var(--ink);color:var(--amber);}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px;}
+
+/* today -------------------------------------------------------- */
+.floor{background:#F1EFE9;border-left:2px solid var(--amber);padding:10px 12px;margin:14px 0;font-size:13px;line-height:1.5;color:#3D4854;}
+.floor b{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--mute);margin-bottom:3px;font-weight:400;}
+.btns{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{flex:1 1 105px;font-family:var(--sans);font-size:13.5px;font-weight:500;padding:12px 10px;
+  border-radius:2px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;}
+.btn.full.on{background:var(--teal);border-color:var(--teal);color:#fff;}
+.btn.short.on{background:var(--amber);border-color:var(--amber);color:var(--ink);}
+.btn.rest.on{background:var(--ink2);border-color:var(--ink2);color:#fff;}
+.logged{font-family:var(--mono);font-size:11.5px;color:var(--teal);margin-top:10px;}
+
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:11px;}
+.mini{margin:0;padding:12px;}
+.pct{font-family:var(--mono);font-size:23px;font-weight:700;line-height:1;}
+.pct span{font-size:12px;color:var(--mute);}
+.bar{height:4px;background:#E2E0D8;border-radius:2px;overflow:hidden;margin-top:8px;}
+.bar > i{display:block;height:100%;background:var(--teal);}
+
+.phase ul{margin:10px 0 0;padding-left:16px;}
+.phase li{font-size:13.5px;line-height:1.7;color:#3D4854;}
+.phase.current{border-color:var(--ink);border-left-width:3px;}
+
+/* tracks ------------------------------------------------------- */
+.src{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);margin-bottom:10px;}
+.mod-head{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:0;cursor:pointer;text-align:left;}
+.mod-name{flex:1;font-size:15px;font-weight:600;color:var(--ink);}
+.mod-meta{font-family:var(--mono);font-size:11px;color:var(--mute);}
+.chev{color:var(--mute);font-size:11px;}
+.items{list-style:none;margin:12px 0 0;padding:0;}
+.item{display:flex;align-items:flex-start;gap:10px;padding:9px 0;cursor:pointer;border-top:1px solid #EDEBE4;}
+.items li:first-child .item{border-top:0;}
+.item input{position:absolute;opacity:0;width:0;height:0;}
+.box{flex:0 0 16px;width:16px;height:16px;margin-top:1px;border:1.5px solid #B9B6AC;border-radius:2px;background:#fff;}
+.item.done .box{background:var(--teal);border-color:var(--teal);}
+.item.done .box::after{content:"";display:block;width:4px;height:8px;margin:1px auto;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg);}
+.lab{flex:1;font-size:13.5px;line-height:1.45;}
+.item.done .lab{color:#9A9A93;text-decoration:line-through;}
+.est{font-family:var(--mono);font-size:10.5px;color:var(--mute);margin-top:2px;}
+
+/* plan / data -------------------------------------------------- */
+table{width:100%;border-collapse:collapse;}
+td{padding:9px 6px;border-top:1px solid #EDEBE4;font-size:13px;vertical-align:top;}
+tr:first-child td{border-top:0;}
+tr.now td{background:#F1EFE9;}
+.day{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);width:42px;}
+.what{font-weight:600;width:104px;}
+.why{color:#4A5560;}
+.rules ol{margin:8px 0 0;padding-left:18px;}
+.rules li{font-size:13.5px;line-height:1.65;margin-bottom:7px;color:#3D4854;}
+input[type=date]{font-family:var(--mono);font-size:13px;padding:9px 10px;border:1px solid var(--line);border-radius:2px;background:#fff;color:var(--ink);}
+.ghost{font-family:var(--sans);font-size:13px;font-weight:500;padding:10px 14px;border:1px solid var(--line);
+  border-radius:2px;background:#fff;color:var(--ink);cursor:pointer;margin:0 8px 8px 0;}
+.ghost.danger{color:var(--brick);border-color:#E0C7BF;}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));
+  background:var(--ink);color:var(--amber);font-family:var(--mono);font-size:12px;padding:10px 16px;border-radius:3px;z-index:9;}
+
+@media (max-width:560px){
+  .grid3{grid-template-columns:1fr;}
+  h2{font-size:22px;}
+  .cv{font-size:15px;}
+  .why{display:none;}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="file" accept="application/json" hidden>
+
+<script>
+/* ============================ CONTENT ============================ */
+const DSA=[
+["Fundamentals",7,[["d01","Arrays + linked lists fundamentals",1],["d02","Circular array technique",.5],["d03","Queue & stack fundamentals",.5],["d04","Hash table principles, LinkedHashMap, ArrayHashMap",1.5],["d05","Binary tree basics, recursive & level-order traversal, DFS vs BFS",1.5],["d06","BST applications",.5],["d07","Binary heap principles",.5],["d08","Graph terminology, implementation, DFS/BFS traversal",1]]],
+["Two pointers & windows",10,[["d09","A framework for learning data structures & algorithms",.5],["d10","Linked list two-pointer: seven problems",1],["d11","Linked list two-pointer exercises",1],["d12","Palindrome linked list + reversing linked lists",1],["d13","Array two-pointer: seven problems",.5],["d14","2D array traversal + array two-pointer exercises",1.5],["d15","Sliding window core template",1],["d16","Sliding window exercises",1],["d17","Binary search template + thinking framework",1.5],["d18","Prefix sum + difference arrays",1.5]]],
+["Stacks, queues, monotonic",5,[["d19","Stack from queues and vice versa",.5],["d20","Classic stack & queue exercises",1.5],["d21","Monotonic stack template + monotonic queue",1.5],["d22","Monotonic stack variants & exercises",1.5]]],
+["Trees & recursion",11,[["d23","Recursion: one perspective, two thinking patterns",.5],["d24","Binary tree core outline",1],["d25","Binary tree essentials — thinking",1],["d26","Binary tree essentials — construction",1],["d27","Binary tree essentials — serialization",1],["d28","Lowest common ancestor + count nodes in complete tree",1],["d29","Exercises: 'traversal' thinking",.75],["d30","Exercises: 'decompose the problem' thinking",.75],["d31","Exercises: level-order traversal",.5],["d32","BST properties + basic operations",1.5],["d33","BST construction",1],["d34","Trie fundamentals + implementation",1.5]]],
+["Data structure design",3,[["d35","LRU cache from scratch",1],["d36","Calculator implementation",1],["d37","More classic design exercises",1]]],
+["Graphs",6,[["d38","Cycle detection, topological sort, bipartite check",1.5],["d39","Union Find fundamentals + algorithm",1],["d40","Minimum spanning tree + Kruskal",1],["d41","Shortest path overview",.5],["d42","Dijkstra template, constraints, exercises",1.5]]],
+["Brute force search",9,[["d43","Backtracking framework + Sudoku / N-Queens",1.5],["d44","Permutations, combinations, subsets",1.5],["d45","Island problems (DFS) + DFS vs backtracking",1],["d46","Backtracking exercises I–III",2],["d47","BFS framework",1],["d48","BFS exercises I–II",2]]],
+["Dynamic programming",7,[["d49","DP framework + longest increasing subsequence",1.5],["d50","Base cases, memo init, optimal substructure, traversal order",1.5],["d51","Edit distance, max subarray, LCS",2],["d52","0-1 knapsack, subset knapsack, unbounded knapsack",2]]],
+["Finishing techniques",8,[["d53","Greedy: principles and applications",1],["d54","Divide and conquer",1],["d55","One-line problems + randomized algorithms",1.5],["d56","Primes + essential math techniques",1],["d57","Sweep line, trapping rain water, ugly numbers",1.5],["d58","Weighted random + nSum universal function",1.5],["d59","Ten classic sorting algorithms",1]]]];
+
+const LLD=[
+["Foundations",4,[["l01","OOP recap: encapsulation, inheritance, polymorphism, abstraction",.5],["l02","UML class diagrams",.5],["l03","UML sequence diagrams",.5],["l04","SOLID — SRP, OCP, LSP",1],["l05","SOLID — ISP, DIP",1],["l06","Composition over inheritance, coding to interfaces",.5]]],
+["Creational patterns",3,[["l07","Singleton (+ thread-safe variants)",.5],["l08","Factory Method",.5],["l09","Abstract Factory",.5],["l10","Builder",.5],["l11","Prototype",.5]]],
+["Structural patterns",4,[["l12","Adapter",.5],["l13","Decorator",.5],["l14","Facade",.5],["l15","Composite",.5],["l16","Proxy",.5],["l17","Flyweight",.5],["l18","Bridge",.5]]],
+["Behavioural patterns",6,[["l19","Strategy",.5],["l20","Observer",.5],["l21","Chain of Responsibility",.5],["l22","Command",.5],["l23","State",.5],["l24","Template Method",.5],["l25","Iterator",.5],["l26","Mediator",.5],["l27","Memento",.5],["l28","Visitor",.5],["l29","Null Object",.5]]],
+["Concurrency for machine coding",3,[["l30","Threads, executors, synchronized vs explicit locks",1],["l31","Producer–consumer, blocking queues",1],["l32","Making a machine-coding design thread-safe",1]]],
+["Machine coding — watch, close tab, then build",15,[["l33","Parking lot",1],["l34","Vending machine",1],["l35","Tic-tac-toe",1],["l36","Snake and ladder",1],["l37","Elevator system",1],["l38","Splitwise",1],["l39","Movie ticket booking",1],["l40","ATM",1],["l41","Logging framework",1],["l42","Rate limiter",1],["l43","Notification system",1],["l44","In-memory cache with eviction policies",1],["l45","Food ordering / order management",1],["l46","Ride hailing dispatch",1],["l47","Chess",1]]]];
+
+const SD=[
+["Volume 1 — the groundwork",3,[["s01","Ch 1 — Scale from zero to millions of users",1],["s02","Ch 2 — Back-of-the-envelope estimation",1],["s03","Ch 3 — A framework for system design interviews",1]]],
+["Volume 1 — core designs",12,[["s04","Ch 4 — Rate limiter",1],["s05","Ch 5 — Consistent hashing",1],["s06","Ch 6 — Key-value store",1],["s07","Ch 7 — Unique ID generator",1],["s08","Ch 8 — URL shortener",1],["s09","Ch 9 — Web crawler",1],["s10","Ch 10 — Notification system",1],["s11","Ch 11 — News feed system",1],["s12","Ch 12 — Chat system",1],["s13","Ch 13 — Search autocomplete",1],["s14","Ch 14 — YouTube",1],["s15","Ch 15 — Google Drive",1]]],
+["Volume 2 — highest value for you first",13,[["s16","Distributed message queue",1],["s17","Payment system",1],["s18","Digital wallet",1],["s19","Metrics monitoring and alerting",1],["s20","Ad click event aggregation",1],["s21","Hotel reservation system",1],["s22","S3-like object storage",1],["s23","Real-time gaming leaderboard",1],["s24","Proximity service",1],["s25","Stock exchange",1],["s26","Nearby friends",1],["s27","Google Maps",1],["s28","Distributed email service",1]]]];
+
+const TRACKS={dsa:{label:"DSA",data:DSA,src:"labuladong — Fast-Track plan"},
+              lld:{label:"LLD",data:LLD,src:"Concept && Coding — 48 videos"},
+              sd:{label:"System design",data:SD,src:"Alex Xu — Vol 1 & 2"}};
+
+const PHASES=[
+{name:"Foundations",from:1,to:5,goal:"Build the base you skipped last time. No machine coding yet.",
+ lines:["DSA — Fundamentals through Two pointers & windows","LLD — Foundations + creational patterns","SD — Vol 1 chapters 1–3 only, nothing more"]},
+{name:"Go live",from:6,to:10,goal:"Apply in week 7 whether or not you feel ready. Interviews are the plan, not the reward for finishing it.",
+ lines:["DSA — Stacks, monotonic, trees, BST, trie, design","LLD — Remaining patterns + first 5 machine coding builds","SD — Vol 1 chapters 4–9","Week 7 — apply to 5 calibration companies","Week 9 — apply to 5 more, one tier up"]},
+{name:"Depth",from:11,to:16,goal:"The hard half of DSA, plus enough LLD reps that machine coding stops being scary.",
+ lines:["DSA — Graphs, backtracking, BFS, DP, finishing techniques","LLD — Machine coding builds 6–12","SD — Vol 1 remainder + Vol 2 top five","Week 11 — apply to your actual target list"]},
+{name:"Loop mode",from:17,to:999,goal:"Prep becomes maintenance. Interviews become the main activity.",
+ lines:["Daily — 3 mixed random problems, timed","Weekly — one system design written end to end, one machine coding under 75 min","Per company — their tagged list the two days before the round"]}];
+
+const DAYPLAN=[
+{t:"Rest or catch-up",d:"If you missed a weekday, this is where it goes. Otherwise close the laptop."},
+{t:"DSA",d:"One labuladong article + its example problems. Morning slot."},
+{t:"DSA",d:"One labuladong article + its example problems. Morning slot."},
+{t:"LLD",d:"Two to three pattern videos, or half a machine coding build."},
+{t:"DSA",d:"One labuladong article + its example problems. Morning slot."},
+{t:"DSA",d:"One labuladong article + its example problems. Morning slot."},
+{t:"System design",d:"Write your own design for 30 min first. Then read the chapter and diff it."}];
+
+/* ============================ STATE ============================= */
+const KEY="switch_tracker_v1";
+const k=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const fromK=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c);};
+const shift=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const between=(a,b)=>Math.round((fromK(b)-fromK(a))/864e5);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let S={start:k(new Date()),log:{},done:{}};
+let tab="today", shut={};
+
+function load(){
+  try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}
+  catch(e){ toast("Saved data was unreadable. Starting fresh."); }
+}
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(S)); }
+  catch(e){ toast("Couldn't save — storage is full or blocked."); }
+}
+
+/* ============================ DERIVED =========================== */
+const today=()=>k(new Date());
+function streak(){
+  let n=0,gap=0;
+  for(let i=0;i<400;i++){
+    const v=S.log[k(shift(new Date(),-i))];
+    if(v==="full"||v==="short"){n++;gap=0;} else {gap++; if(gap>=2) break;}
+  }
+  return n;
+}
+function prog(data){let t=0,d=0;data.forEach(([,,items])=>items.forEach(([id])=>{t++;if(S.done[id])d++;}));
+  return{t,d,pct:t?Math.round(d/t*100):0};}
+
+/* ============================ RENDER ============================ */
+function render(){
+  const y=window.scrollY;
+  const day=Math.max(1,between(S.start,today())+1);
+  const wk=Math.max(1,Math.ceil(day/7));
+  const ph=PHASES.find(p=>wk>=p.from&&wk<=p.to)||PHASES[3];
+  const applyIn=between(today(),k(shift(fromK(S.start),42)));
+  const st=streak();
+  const yest=S.log[k(shift(new Date(),-1))];
+  const risk=!S.log[today()]&&!(yest==="full"||yest==="short")&&day>1;
+
+  let h=`<div class="board"><div class="board-row">
+    ${cell("DAY",String(day).padStart(3,"0"))}
+    ${cell("WEEK",String(wk).padStart(2,"0"))}
+    ${cell("PHASE",ph.name.toUpperCase(),1)}
+    ${cell("STREAK",String(st).padStart(2,"0"))}
+    ${cell("APPLY IN",applyIn>0?applyIn+"D":"NOW",0,applyIn<=7)}
+  </div><div class="strip">`;
+  for(let i=20;i>=0;i--){const d=k(shift(new Date(),-i));h+=`<span class="tick ${S.log[d]||""}" title="${d}"></span>`;}
+  h+=`</div></div>`;
+
+  if(risk) h+=`<div class="alert"><strong>Second day in a row.</strong> This is the one that matters. Twenty minutes counts — re-derive a template from memory and log a short session.</div>`;
+
+  h+=`<nav>`+[["today","Today"],["dsa","DSA"],["lld","LLD"],["sd","System design"],["plan","The plan"],["data","Data"]]
+    .map(([id,l])=>`<button class="tab ${tab===id?"on":""}" data-tab="${id}">${l}</button>`).join("")+`</nav>`;
+
+  if(tab==="today"){
+    const p=DAYPLAN[new Date().getDay()], lg=S.log[today()];
+    h+=`<div class="card">
+      <div class="eyebrow">${new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})}</div>
+      <h2>${p.t}</h2><p class="detail">${p.d}</p>
+      <div class="floor"><b>Floor</b>20 minutes. One template written from memory, or one solved problem re-solved. It still counts.</div>
+      <div class="btns">
+        <button class="btn full ${lg==="full"?"on":""}" data-log="full">Full session</button>
+        <button class="btn short ${lg==="short"?"on":""}" data-log="short">Short session</button>
+        <button class="btn rest ${lg==="rest"?"on":""}" data-log="rest">Rest</button>
+      </div>${lg?`<div class="logged">Logged as ${lg}. Close the app.</div>`:""}</div>`;
+    h+=`<div class="grid3">`+Object.entries(TRACKS).map(([id,t])=>{const q=prog(t.data);
+      return `<div class="card mini"><div class="eyebrow">${t.label}</div>
+      <div class="pct">${q.pct}<span>%</span></div><div class="bar"><i style="width:${q.pct}%"></i></div>
+      <div class="sub">${q.d} of ${q.t} done</div></div>`;}).join("")+`</div>`;
+    h+=phaseCard(ph,true);
+  }
+
+  if(TRACKS[tab]){
+    const T=TRACKS[tab];
+    h+=`<div class="src">${T.src}</div>`;
+    T.data.forEach(([name,est,items])=>{
+      const d=items.filter(([id])=>S.done[id]).length, open=!shut[name];
+      h+=`<div class="card"><button class="mod-head" data-mod="${esc(name)}">
+        <span class="mod-name">${esc(name)}</span><span class="mod-meta">${d}/${items.length} · ~${est}d</span>
+        <span class="chev">${open?"▲":"▼"}</span></button>
+        <div class="bar" style="margin-top:10px"><i style="width:${items.length?d/items.length*100:0}%"></i></div>`;
+      if(open){h+=`<ul class="items">`+items.map(([id,lab,e])=>
+        `<li><label class="item ${S.done[id]?"done":""}"><input type="checkbox" data-id="${id}" ${S.done[id]?"checked":""}>
+        <span class="box"></span><span class="lab">${esc(lab)}</span><span class="est">${e}d</span></label></li>`).join("")+`</ul>`;}
+      h+=`</div>`;
+    });
+  }
+
+  if(tab==="plan"){
+    h+=`<div class="card"><div class="eyebrow">Weekly rhythm · about 7 hours</div><table><tbody>`+
+      ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map((n,i)=>
+      `<tr class="${i===new Date().getDay()?"now":""}"><td class="day">${n.slice(0,3)}</td>
+       <td class="what">${DAYPLAN[i].t}</td><td class="why">${DAYPLAN[i].d}</td></tr>`).join("")+`</tbody></table></div>`;
+    PHASES.forEach(p=>h+=phaseCard(p,p===ph));
+    h+=`<div class="card rules"><div class="eyebrow">The only rules</div><ol>
+      <li>Never miss two in a row. One missed day is noise. Two is the start of the last attempt.</li>
+      <li>The morning slot is the real slot. Evenings belong to whatever work throws at you.</li>
+      <li>Every machine coding video gets closed before you write code. Watching is not learning.</li>
+      <li>Every system design chapter gets 30 minutes of your own attempt first.</li>
+      <li>You apply on schedule, not when you feel ready. You will never feel ready.</li></ol></div>`;
+  }
+
+  if(tab==="data"){
+    const n=Object.keys(S.done).length, l=Object.keys(S.log).length;
+    h+=`<div class="card"><div class="eyebrow">Start date</div>
+      <input type="date" id="start" value="${S.start}">
+      <p class="sub">Everything counts from here. Set it once and leave it alone.</p></div>
+    <div class="card"><div class="eyebrow">Backup</div>
+      <p class="detail">This app stores everything on this device only. ${n} items ticked, ${l} days logged.
+      Export now and again so a lost phone isn't a lost log.</p>
+      <div style="margin-top:12px">
+        <button class="ghost" data-act="export">Export file</button>
+        <button class="ghost" data-act="copy">Copy as text</button>
+        <button class="ghost" data-act="import">Import backup</button>
+      </div></div>
+    <div class="card"><div class="eyebrow">Start over</div>
+      <p class="detail">Clears every tick and every logged day. There is no undo.</p>
+      <div style="margin-top:12px"><button class="ghost danger" data-act="reset">Erase everything</button></div></div>`;
+  }
+
+  document.getElementById("app").innerHTML=h;
+  window.scrollTo(0,y);
+}
+const cell=(a,b,wide,hot)=>`<div class="cell ${wide?"wide":""}"><span class="ck">${a}</span><span class="cv ${hot?"hot":""}">${b}</span></div>`;
+const phaseCard=(p,cur)=>`<div class="card phase ${cur?"current":""}">
+  <div class="eyebrow">Weeks ${p.from}–${p.to===999?"on":p.to}${cur?" · you are here":""}</div>
+  <h3>${p.name}</h3><p class="detail">${p.goal}</p>
+  <ul>${p.lines.map(l=>`<li>${esc(l)}</li>`).join("")}</ul></div>`;
+
+/* ============================ ACTIONS =========================== */
+function toast(msg){
+  const el=document.createElement("div");el.className="toast";el.textContent=msg;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),2600);
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tab],[data-log],[data-mod],[data-act]");
+  if(!t) return;
+  if(t.dataset.tab){tab=t.dataset.tab;window.scrollTo(0,0);return render();}
+  if(t.dataset.log){S.log[today()]=t.dataset.log;save();return render();}
+  if(t.dataset.mod){shut[t.dataset.mod]=!shut[t.dataset.mod];return render();}
+  act(t.dataset.act);
+});
+document.addEventListener("change",e=>{
+  if(e.target.dataset.id){
+    const id=e.target.dataset.id;
+    if(S.done[id]) delete S.done[id]; else S.done[id]=1;
+    save();render();
+  }
+  if(e.target.id==="start"&&e.target.value){S.start=e.target.value;save();render();}
+});
+
+function act(a){
+  if(a==="export"){
+    const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob), a2=document.createElement("a");
+    a2.href=url;a2.download=`switch-backup-${today()}.json`;a2.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    toast("Exported");
+  }
+  if(a==="copy"){
+    const txt=JSON.stringify(S);
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject())
+      .then(()=>toast("Copied to clipboard"))
+      .catch(()=>{window.prompt("Copy this backup:",txt);});
+  }
+  if(a==="import") document.getElementById("file").click();
+  if(a==="reset"){
+    if(confirm("Erase every tick and logged day? This cannot be undone.")){
+      S={start:today(),log:{},done:{}};save();render();toast("Cleared");
+    }
+  }
+}
+document.getElementById("file").addEventListener("change",ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const o=JSON.parse(r.result);
+      if(!o||typeof o!=="object"||!o.log||!o.done) throw 0;
+      if(!confirm("Replace what's on this device with the backup?")) return;
+      S={start:o.start||today(),log:o.log,done:o.done};save();render();toast("Imported");
+    }catch(e){ toast("That file isn't a Switch backup."); }
+  };
+  r.readAsText(f);ev.target.value="";
+});
+
+/* ============================ BOOT ============================== */
+load();render();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)render();});
+if(navigator.storage&&navigator.storage.persist) navigator.storage.persist();
+if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
